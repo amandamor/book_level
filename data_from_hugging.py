@@ -32,27 +32,22 @@ def preprocessing(sentence):
 def calculate_difficulty(df):
     df = df.copy()
 
-    # Calcular o número de palavras únicas
     word_counts = df['tokenized_chapter'].value_counts()
 
-    # Mapeando os valores de contagem de volta ao DataFrame original
     df['count'] = df['tokenized_chapter'].map(word_counts)
-    # repeated_tokenized_chapter_count = [tokenized_chapter_count] * len(df)
 
-    # Escalonar o número de palavras únicas
     scaler = StandardScaler()
     df['z_scores'] = scaler.fit_transform(pd.DataFrame(df['count']))
 
-    # Escalonar os z-scores para o intervalo [0, 1]
     minmax_scaler = MinMaxScaler()
     df['difficulty'] = minmax_scaler.fit_transform(df['z_scores'].values.reshape(-1, 1))
 
     return df
 
 
-df_train = pd.read_parquet('output/train.parquet')
-df_test = pd.read_parquet('output/test.parquet')
-df_val = pd.read_parquet('output/validation.parquet')
+df_train = pd.read_parquet('train.parquet')
+df_test = pd.read_parquet('test.parquet')
+df_val = pd.read_parquet('validation.parquet')
 
 df_concat = pd.concat([df_train, df_test, df_val], axis=0)
 
@@ -77,7 +72,7 @@ df_difficulty = calculate_difficulty(df_livros_exploded)
 
 ################### MODEL ###################
 
-X = df_difficulty[['count']]  # , 'tokenized_chapter'
+X = df_difficulty[['count']]  # ,
 y = df_difficulty['difficulty']     # Variável alvo (dificuldade)
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -111,7 +106,7 @@ for model in models:
 print('\n'.join([f"{result['model']}: {result['mse']}" for result in model_mse]))
 
 
-"""
+""" 
 MLPRegressor()
 LinearRegression(): 1.3132227493882662e-26
 Ridge(): 1.0205158791662882e-25
@@ -122,3 +117,4 @@ GradientBoostingRegressor(): 4.744948432629651e-07
 SVR(): 0.007276583661479124
 MLPRegressor(): 8.959357549481053e-05
 """
+
