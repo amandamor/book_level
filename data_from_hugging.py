@@ -2,12 +2,9 @@ import pandas as pd
 import string
 from nltk.corpus import stopwords
 from nltk import word_tokenize
-from nltk.stem import WordNetLemmatizer
 import re
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.model_selection import train_test_split
-
-from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import Ridge, Lasso
 from sklearn.tree import DecisionTreeRegressor
@@ -15,8 +12,6 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.svm import SVR
 from sklearn.neural_network import MLPRegressor
-
-
 from sklearn.metrics import mean_squared_error, accuracy_score
 from sklearn.linear_model import LogisticRegression
 
@@ -55,7 +50,6 @@ def calculate_difficulty(df):
     return df
 
 
-
 df_train = pd.read_parquet('output/train.parquet')
 df_test = pd.read_parquet('output/test.parquet')
 df_val = pd.read_parquet('output/validation.parquet')
@@ -80,6 +74,7 @@ df_difficulty = calculate_difficulty(df_livros_exploded)
 # print(df_difficulty.isna().sum())
 # print(df_difficulty.describe())
 # print(df_difficulty.info())
+
 ################### MODEL ###################
 
 X = df_difficulty[['count']]  # , 'tokenized_chapter'
@@ -116,4 +111,14 @@ for model in models:
 print('\n'.join([f"{result['model']}: {result['mse']}" for result in model_mse]))
 
 
-a = 5
+"""
+MLPRegressor()
+LinearRegression(): 1.3132227493882662e-26
+Ridge(): 1.0205158791662882e-25
+Lasso(): 1.3927275455519268e-06
+DecisionTreeRegressor(): 2.103404000039251e-29
+RandomForestRegressor(): 6.39943491536164e-30
+GradientBoostingRegressor(): 4.744948432629651e-07
+SVR(): 0.007276583661479124
+MLPRegressor(): 8.959357549481053e-05
+"""
