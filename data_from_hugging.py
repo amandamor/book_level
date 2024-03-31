@@ -14,6 +14,7 @@ from sklearn.svm import SVR
 from sklearn.neural_network import MLPRegressor
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import mean_squared_error, accuracy_score
+import numpy as np
 from sklearn.linear_model import LogisticRegression
 
 def preprocessing(sentence):
@@ -78,14 +79,16 @@ df_exploded = df_concat.explode(['tokenized_chapter_names', 'tokenized_chapter_v
 
 df_difficulty = calculate_difficulty(df_exploded)
 
-# print(df_difficulty.isna().sum())
-# print(df_difficulty.describe())
-# print(df_difficulty.info())
+df_difficulty_final = df_difficulty.groupby('book_id')['difficulty'].mean().reset_index()
+
+print(df_difficulty_final.isna().sum())
+print(df_difficulty_final.describe())
+print(df_difficulty_final.info())
 
 ################### MODEL ###################
 
 X = df_difficulty[['tokenized_chapter_values']]
-y = df_difficulty['difficulty']    # Variável alvo (dificuldade)
+y = df_difficulty['difficulty'] # Variável alvo (dificuldade)
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
@@ -111,6 +114,10 @@ for model in models:
 
     mse = mean_squared_error(y_test, y_pred)
     model_mse.append({'model': model, 'mse': mse})
+
+    book_difficulty = np.mean(y_pred)
+
+    print("Dificuldade estimada do livro:", book_difficulty)
 
 print('\n'.join([f"{result['model']}: {result['mse']}" for result in model_mse]))
 
