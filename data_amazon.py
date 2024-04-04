@@ -19,24 +19,24 @@ proficiency_intervals = {
     'C1': (0.8, 0.95),
     'C2': (0.95, 1.0)
 }
+stopWords = set(stopwords.words('english'))
+
 def dividir_em_sentencas(texto):
     sentencas = nltk.sent_tokenize(texto)
     return sentencas
 
 def preprocessing(sentence):
-    sentence = ''.join(char for char in sentence if not char.isdigit())
+    sentence = (''.join(char for char in sentence if not char.isdigit()))
+
+    words = list(filter(lambda x: x not in stopWords, set(word_tokenize(sentence))))
 
     for punctuation in string.punctuation:
-        sentence = sentence.replace(punctuation, '')
+        words = list(map(lambda x: x.replace(punctuation, ''), words))
+    words = list(map(lambda x: x.replace("'s", ''), words))
 
-    stopWords = set(stopwords.words('english'))
-    tokenized_sentence = word_tokenize(sentence)
 
-    wordsFiltered = []
+    wordsFiltered = words
 
-    for sent in sentence:
-        tokenized_sentence = word_tokenize(sent)
-        wordsFiltered.extend([w for w in tokenized_sentence if w.lower() not in stopWords])
 
     # document = ' '.join(wordsFiltered)
     #
@@ -67,7 +67,7 @@ def calculate_difficulty(df):
 
 def is_english(text):
     try:
-        lang = detect(text)
+        lang = detect(text[-100:])
         return lang == 'en'
     except:
         return False
@@ -78,8 +78,7 @@ def map_proficiency(difficulty):
             return proficiency
     return None
 
-df_json = pd.read_json('./output/final.json')
-df = pd.DataFrame(df_json)
+df = pd.read_json('./output/final.json')
 
 df['is_english'] = df['chapter'].apply(is_english)
 df = df[df['is_english']]
@@ -93,7 +92,7 @@ df['category'] = df['category'].str.lower()
 df['chapter'] = df['chapter'].str.lower()
 
 # df[['tokenized_chapter_names', 'tokenized_chapter_values']] = df['chapter'].apply(lambda x: pd.Series(preprocessing(x)))
-df['tokenized_chapter_names'] = df['chapter'].apply(lambda x: preprocessing(x))
+df['tokenized_chapter_words'] = df['chapter'].apply(lambda x: preprocessing(x))
 # tokenized_chapter_names, tokenized_chapter_values = preprocessing(df['chapter'].srt.lower())
 # df['tokenized_chapter_names'] = tokenized_chapter_names
 # df['tokenized_chapter_values'] = tokenized_chapter_values
@@ -104,7 +103,7 @@ df['tokenized_chapter_names'] = df['chapter'].apply(lambda x: preprocessing(x))
 tokenizer = AutoTokenizer.from_pretrained("RobPruzan/text-difficulty")
 model = AutoModelForSequenceClassification.from_pretrained("RobPruzan/text-difficulty")
 
-df_difficulty= df['tokenized_chapter_names'].apply(lambda x: model(**tokenizer(x, return_tensors="pt")))
+df_difficulty= df['tokenized_chapter_words'].apply(lambda x: model(**tokenizer(" ".join(x), return_tensors="pt")))
 df_difficulty_final = df.copy()
 df_difficulty_final['difficulty'] = df_difficulty
 
