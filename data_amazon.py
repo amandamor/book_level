@@ -4,11 +4,12 @@ from nltk.corpus import stopwords
 from nltk import word_tokenize
 import nltk
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from sklearn.feature_extraction.text import TfidfVectorizer
 from langdetect import detect
-# Load model directly
+import torch
+import torch.nn.functional as F
+from transformers import BertTokenizer, BertForSequenceClassification
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 
 proficiency_intervals = {
@@ -20,6 +21,33 @@ proficiency_intervals = {
     'C2': (0.95, 1.0)
 }
 stopWords = set(stopwords.words('english'))
+
+
+def calculate_word_difficulty(tokenized_chapters, titles, authors, model, tokenizer):
+    chapter_difficulty = {}
+
+    progress_bar = tqdm(total=len(tokenized_chapters), desc="Processing")
+
+    for title, author, words in zip(titles, authors, tokenized_chapters):
+        tokenized_input = tokenizer(" ".join(words), return_tensors='pt', padding=True, truncation=True)
+        input_ids = tokenized_input['input_ids']
+        attention_mask = tokenized_input['attention_mask']
+
+        with torch.no_grad():
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+            logits = outputs.logits
+            probabilities = F.softmax(logits, dim=1)
+            max_difficulty = torch.max(probabilities[:, 1]).item()
+
+            key = (title, author)
+            chapter_difficulty[key] = max_difficulty
+
+        progress_bar.update(1)
+    progress_bar.close()
+
+    return chapter_difficulty
+
+
 
 def dividir_em_sentencas(texto):
     sentencas = nltk.sent_tokenize(texto)
@@ -100,19 +128,20 @@ df['tokenized_chapter_words'] = df['chapter'].apply(lambda x: preprocessing(x))
 # df_exploded = df.explode(['tokenized_chapter_names', 'tokenized_chapter_values'])
 
 # df_difficulty = calculate_difficulty(df_exploded)
-tokenizer = AutoTokenizer.from_pretrained("RobPruzan/text-difficulty")
-model = AutoModelForSequenceClassification.from_pretrained("RobPruzan/text-difficulty")
+# tokenizer = AutoTokenizer.from_pretrained("RobPruzan/text-difficulty")
+# model = AutoModelForSequenceClassification.from_pretrained("RobPruzan/text-difficulty")
+#
+# df_difficulty= df['tokenized_chapter_words'].apply(lambda x: model(**tokenizer(" ".join(x), return_tensors="pt")))
 
-df_difficulty= df['tokenized_chapter_words'].apply(lambda x: model(**tokenizer(" ".join(x), return_tensors="pt")))
-df_difficulty_final = df.copy()
-df_difficulty_final['difficulty'] = df_difficulty
+tokenizer = AutoTokenizer.from_pretrained("google-bert/bert-base-uncased")
+model = AutoModelForSequenceClassification.from_pretrained("google-bert/bert-base-uncased")
 
-# df_difficulty_final = df_difficulty.groupby(['author', 'book_title', 'category'])['difficulty'].mean().reset_index()
-print(df_difficulty_final.info())
-print(df_difficulty_final.isna().sum())
-print(df_difficulty_final.describe())
+difficulty_dict = calculate_word_difficulty(df['tokenized_chapter_words'],df['author'], df['book_title'], model, tokenizer)
 
+df_difficulty = pd.DataFrame(list(difficulty_dict.items()), columns=['author_title', 'difficulty'])
+df_difficulty[['author', 'title']] = pd.DataFrame(df_difficulty['author_title'].tolist(), index=df_difficulty.index)
+df_difficulty.drop('author_title', axis=1, inplace=True)
 
-df_difficulty_final['english_level'] = df_difficulty_final['difficulty'].apply(map_proficiency)
+df_difficulty['english_level'] = df_difficulty['difficulty'].apply(map_proficiency)
 
-df_difficulty_final.to_csv('./output/difficulty_final2.csv')
+df_difficulty.to_csv('./output/difficulty_final_base2.csv')
