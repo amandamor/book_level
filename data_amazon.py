@@ -7,7 +7,6 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from langdetect import detect
 import torch
 import torch.nn.functional as F
-from transformers import BertTokenizer, BertForSequenceClassification
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from tqdm import tqdm
 
@@ -47,8 +46,6 @@ def calculate_word_difficulty(tokenized_chapters, titles, authors, model, tokeni
 
     return chapter_difficulty
 
-
-
 def dividir_em_sentencas(texto):
     sentencas = nltk.sent_tokenize(texto)
     return sentencas
@@ -62,20 +59,8 @@ def preprocessing(sentence):
         words = list(map(lambda x: x.replace(punctuation, ''), words))
     words = list(map(lambda x: x.replace("'s", ''), words))
 
-
     wordsFiltered = words
 
-
-    # document = ' '.join(wordsFiltered)
-    #
-    # tfidf_vectorizer = TfidfVectorizer(tokenizer=lambda x: x.split())
-    #
-    # X_tfidf = tfidf_vectorizer.fit_transform([document])
-    #
-    # feature_names = tfidf_vectorizer.get_feature_names_out()
-    # tfidf_values = X_tfidf.toarray()[0]
-    #
-    # return feature_names, tfidf_values
     return wordsFiltered
 
 def calculate_difficulty(df):
@@ -133,8 +118,8 @@ df['tokenized_chapter_words'] = df['chapter'].apply(lambda x: preprocessing(x))
 #
 # df_difficulty= df['tokenized_chapter_words'].apply(lambda x: model(**tokenizer(" ".join(x), return_tensors="pt")))
 
-tokenizer = AutoTokenizer.from_pretrained("google-bert/bert-base-uncased")
-model = AutoModelForSequenceClassification.from_pretrained("google-bert/bert-base-uncased")
+tokenizer = AutoTokenizer.from_pretrained("google-bert/bert-large-uncased-whole-word-masking-finetuned-squad")
+model = AutoModelForSequenceClassification.from_pretrained("google-bert/bert-large-uncased-whole-word-masking-finetuned-squad")
 
 difficulty_dict = calculate_word_difficulty(df['tokenized_chapter_words'],df['author'], df['book_title'], model, tokenizer)
 
@@ -144,4 +129,4 @@ df_difficulty.drop('author_title', axis=1, inplace=True)
 
 df_difficulty['english_level'] = df_difficulty['difficulty'].apply(map_proficiency)
 
-df_difficulty.to_csv('./output/difficulty_final_base2.csv')
+df_difficulty.to_csv('./output/difficulty_final_large_finetune.csv')
