@@ -107,15 +107,18 @@ df['chapter'] = df['chapter'].str.lower()
 df['tokenized_chapter_words'] = df['chapter'].apply(lambda x: preprocessing(x))
 
 models_to_test = [
-    "google-bert/bert-large-uncased-whole-word-masking-finetuned-squad",
-    "google-bert/bert-large-uncased",
-    "google-bert/bert-base-uncased",
-    "bert-base-uncased",
-    "bert-large-uncased",
-    "google-bert/bert-large-uncased-whole-word-masking",
-    "Intel/bert-large-uncased-sparse-90-unstructured-pruneofa",
-    "Intel/bert-large-uncased-squadv1.1-sparse-90-unstructured",
-    "facebook/bart-large-cnn"
+    # "google-bert/bert-large-uncased-whole-word-masking-finetuned-squad",
+    # "google-bert/bert-large-uncased",
+    # "google-bert/bert-base-uncased",
+    # "bert-base-uncased",
+    # "bert-large-uncased",
+    # "google-bert/bert-large-uncased-whole-word-masking",
+    # "Intel/bert-large-uncased-sparse-90-unstructured-pruneofa",
+    # "Intel/bert-large-uncased-squadv1.1-sparse-90-unstructured",
+    # "facebook/bart-large-cnn",
+    # "facebook/bart-large-mnli",
+    "dslim/bert-base-NER",
+    "Rostlab/prot_bert"
 ]
 
 for model_name in models_to_test:
