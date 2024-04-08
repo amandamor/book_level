@@ -104,29 +104,33 @@ df['book_title'] = df['book_title'].str.lower()
 df['category'] = df['category'].str.lower()
 df['chapter'] = df['chapter'].str.lower()
 
-# df[['tokenized_chapter_names', 'tokenized_chapter_values']] = df['chapter'].apply(lambda x: pd.Series(preprocessing(x)))
 df['tokenized_chapter_words'] = df['chapter'].apply(lambda x: preprocessing(x))
-# tokenized_chapter_names, tokenized_chapter_values = preprocessing(df['chapter'].srt.lower())
-# df['tokenized_chapter_names'] = tokenized_chapter_names
-# df['tokenized_chapter_values'] = tokenized_chapter_values
 
-# df_exploded = df.explode(['tokenized_chapter_names', 'tokenized_chapter_values'])
+models_to_test = [
+    "google-bert/bert-large-uncased-whole-word-masking-finetuned-squad",
+    "google-bert/bert-large-uncased",
+    "google-bert/bert-base-uncased",
+    "bert-base-uncased",
+    "bert-large-uncased",
+    "google-bert/bert-large-uncased-whole-word-masking",
+    "Intel/bert-large-uncased-sparse-90-unstructured-pruneofa",
+    "Intel/bert-large-uncased-squadv1.1-sparse-90-unstructured",
+    "facebook/bart-large-cnn"
+]
 
-# df_difficulty = calculate_difficulty(df_exploded)
-# tokenizer = AutoTokenizer.from_pretrained("RobPruzan/text-difficulty")
-# model = AutoModelForSequenceClassification.from_pretrained("RobPruzan/text-difficulty")
-#
-# df_difficulty= df['tokenized_chapter_words'].apply(lambda x: model(**tokenizer(" ".join(x), return_tensors="pt")))
+for model_name in models_to_test:
+    print(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSequenceClassification.from_pretrained(model_name)
 
-tokenizer = AutoTokenizer.from_pretrained("google-bert/bert-large-uncased-whole-word-masking-finetuned-squad")
-model = AutoModelForSequenceClassification.from_pretrained("google-bert/bert-large-uncased-whole-word-masking-finetuned-squad")
+    difficulty_dict = calculate_word_difficulty(df['tokenized_chapter_words'],df['author'], df['book_title'], model, tokenizer)
 
-difficulty_dict = calculate_word_difficulty(df['tokenized_chapter_words'],df['author'], df['book_title'], model, tokenizer)
+    df_difficulty = pd.DataFrame(list(difficulty_dict.items()), columns=['author_title', 'difficulty'])
+    df_difficulty[['author', 'title']] = pd.DataFrame(df_difficulty['author_title'].tolist(), index=df_difficulty.index)
+    df_difficulty.drop('author_title', axis=1, inplace=True)
 
-df_difficulty = pd.DataFrame(list(difficulty_dict.items()), columns=['author_title', 'difficulty'])
-df_difficulty[['author', 'title']] = pd.DataFrame(df_difficulty['author_title'].tolist(), index=df_difficulty.index)
-df_difficulty.drop('author_title', axis=1, inplace=True)
+    df_difficulty['english_level'] = df_difficulty['difficulty'].apply(map_proficiency)
+    model_name = model_name.replace('-', '_')
+    model_name = model_name.replace('/', '_')
 
-df_difficulty['english_level'] = df_difficulty['difficulty'].apply(map_proficiency)
-
-df_difficulty.to_csv('./output/difficulty_final_large_finetune.csv')
+    df_difficulty.to_csv(f'./output/{model_name}.csv')
